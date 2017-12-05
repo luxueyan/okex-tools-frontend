@@ -20,6 +20,7 @@ require('echarts/lib/component/legend')
 require('echarts/lib/component/title')
 require('echarts/lib/component/grid')
 require('echarts/lib/component/axis')
+require('echarts/lib/chart/candlestick')
 require('echarts/lib/component/dataZoom')
 
 const option = {
@@ -41,60 +42,13 @@ const option = {
     bottom: 10
   },
   tooltip: {
-    trigger: 'axis',
-    formatter: (params, ticket, callback) => {
-      if (!params.length) return
-      return concat([`<table class="chart-tooltip"><tr><th colspan="2">${params[0].name}</th><tr>`],
-        map(params, v => {
-          if (isNumber(v.value)) {
-            return `<tr class="line">
-                        <td class="left"><i class="circle" style="color:${v.color}"></i>${v.seriesName}：</td>
-                        <td class="right">${Vue.filter('ktPercent')(v.value)}</td>
-                      </tr>`
-          }
-        }), '</table>').join('')
-    }
+    trigger: 'axis'
   },
   xAxis: {
-    type: 'category',
-    axisTick: {
-      show: true,
-      alignWithLabel: true
-    },
-    axisLabel: {
-      interval: 0
-    },
-    axisLine: {
-      show: true,
-      lineStyle: {
-        color: '#2a313b'
-      }
-    }
+    type: 'category'
   },
   yAxis: {
-    type: 'value',
-    name: '',
-    axisLabel: {
-      show: true
-    },
-    axisLine: {
-      show: true,
-      lineStyle: {
-        color: '#2a313b'
-      }
-    },
-    axisTick: {
-      show: true
-    }
-    // splitLine: {
-    //   show: false
-    // }
-  },
-  grid: {
-    show: false,
-    left: 70,
-    right: 70,
-    bottom: 90
+    type: 'value'
   }
 }
 
@@ -122,7 +76,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="stylus">
 .line-echart {
   min-width: 500px;
   height: 350px;

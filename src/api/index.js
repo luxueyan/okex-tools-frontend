@@ -46,34 +46,28 @@ http.interceptors.request.use(config => {
 
 http.interceptors.response.use(res => {
   closeLoading(res.config.url)
-  const data = res.data
-  if (!data.code && data.resultCode === 'SUCCESS') {
-    data.code = 200
-  } else if (!data.code) {
-    data.code = 400
-  }
-
-  if (data.code === 200) {
+  const { data, status } = res
+  if (status === 200) {
     return res
   }
 
-  if (data.code === 419 || data.code === 401) {
+  if (status === 419 || status === 401) {
     // if (res.config.skipAuth) {
     //   store.dispatch('logout', true)
     // } else {
-    msgBoxErr(data.message || '无访问权限！', data.code)
+    msgBoxErr(data.message || '无访问权限！', status)
     //   store.dispatch('logout')
     // }
-  } else if (data.code === 400) {
-    msgBoxErr(data.message || '请求失败！', data.code)
-  } else if (data.code === 403) {
-    msgBoxErr(data.message || '您无此权限！', data.code)
-  } else if (data.code === 404) {
-    msgBoxErr(data.message || '访问错误！', data.code)
-  } else if (data.code === 500 || data.code === 502) {
-    msgBoxErr(data.message || '抱歉！服务器忙。', data.code)
+  } else if (status === 400) {
+    msgBoxErr(data.message || '请求失败！', status)
+  } else if (status === 403) {
+    msgBoxErr(data.message || '您无此权限！', status)
+  } else if (status === 404) {
+    msgBoxErr(data.message || '访问错误！', status)
+  } else if (status === 500 || status === 502) {
+    msgBoxErr(data.message || '抱歉！服务器忙。', status)
   } else {
-    msgBoxErr(data.message || '请求失败！', data.code)
+    msgBoxErr(data.message || '请求失败！', status)
   }
   // return res
   return Promise.reject(res)
@@ -83,6 +77,7 @@ http.interceptors.response.use(res => {
   return Promise.reject(err)
 })
 
+// api define
 export const APIS = [{
   name: 'coinMenus',
   url: '/coin_menus',
