@@ -4,20 +4,12 @@ import msgBoxErr from '@/common/msgbox-err.js'
 // import store from '@/vuex/store.js'
 import { urlMatcher } from '@/common/util.js'
 import { each } from 'lodash'
-// import qs from 'qs'
 
 const loadingInstances = {}
 
 export const http = axios.create({
   baseURL: process.env.API_HOST,
-  // withCredentials: process.env.NODE_ENV === 'production',
   timeout: 20000
-  // transformRequest: [data => {
-  //   if (data) {
-  //     return qs.stringify(data)
-  //   }
-  //   return data
-  // }]
 })
 
 function closeLoading(url) {
@@ -28,14 +20,9 @@ function closeLoading(url) {
   }
 }
 
-// http.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
 http.interceptors.request.use(config => {
   // config.headers.common['x-auth-token'] = store.getters.token
   config.url = urlMatcher(config.url, config.pathParams)
-  // if (config.params && config.params.page) {
-  //   config.params.page = config.params.page - 1
-  // }
-
   if (config.loadingMaskTarget) {
     loadingInstances[config.url] = Loading.service({
       target: config.loadingMaskTarget

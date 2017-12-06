@@ -5,12 +5,8 @@
 <script>
 import echarts from 'echarts/lib/echarts'
 import {
-  merge,
-  concat,
-  map,
-  isNumber
+  merge
 } from 'lodash'
-import Vue from 'vue'
 
 require('echarts/lib/chart/bar')
 require('echarts/lib/chart/line')
@@ -39,7 +35,7 @@ const option = {
       color: '#262c38',
       fontSize: 12
     },
-    bottom: 10
+    top: 10
   },
   tooltip: {
     trigger: 'axis'
@@ -54,11 +50,11 @@ const option = {
 
 export default {
   props: ['chartOption'],
-  data() {
-    return {
-      echart: null
-    }
-  },
+  // data() {
+  //   return {
+  //     echart: null
+  //   }
+  // },
 
   mounted() {
     this.echart = echarts.init(this.$refs.lineEchart)
@@ -79,7 +75,6 @@ export default {
 <style lang="stylus">
 .line-echart {
   min-width: 500px;
-  height: 350px;
   margin: 0 auto;
 }
 </style>

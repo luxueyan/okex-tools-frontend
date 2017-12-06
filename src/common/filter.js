@@ -4,32 +4,32 @@ import numeral from 'numeral'
 
 export default {
   install(Vue, options) {
-    Vue.filter('ktCurrency', (value, prefix = '￥', suffix = '') => {
+    Vue.filter('btcCurrency', (value, prefix = '￥', suffix = '') => {
       if (isNumber(value)) {
         return prefix + numeral(round(value, 2)).format('0,0.00') + suffix
       }
       return value || '-'
     })
 
-    Vue.filter('ktThousand', (value, suffix = '万元') => {
+    Vue.filter('btcThousand', (value, suffix = '万元') => {
       if (isNumber(value)) {
         return numeral(value / 10000).format('0,0.00') + suffix
       }
       return value || '-'
     })
 
-    Vue.filter('ktKm', value => {
+    Vue.filter('btcKm', value => {
       if (isNumber(value)) {
         return numeral(round(value / 1000)).format('0,0') + 'km'
       }
       return value
     })
 
-    Vue.filter('ktPercent', (value, decimal = 2, multi = 100, unit = '%') => {
+    Vue.filter('btcPercent', (value, decimal = 2, multi = 100, unit = '%') => {
       return isNumber(value) ? round(value * multi, decimal).toFixed(decimal) + (unit || '') : '-'
     })
 
-    Vue.filter('ktRangePercent', (value, value2, decimal = 2) => {
+    Vue.filter('btcRangePercent', (value, value2, decimal = 2) => {
       value = isNumber(value) ? round(value, decimal).toFixed(decimal) : ''
       value2 = isNumber(value2) ? round(value2, decimal).toFixed(decimal) : ''
       if (value === value2) {
@@ -39,26 +39,26 @@ export default {
       return `${value}-${value2}%`
     })
 
-    Vue.filter('ktRound', (value, decimal = 0) => {
+    Vue.filter('btcRound', (value, decimal = 0) => {
       return round(value, decimal).toFixed(2)
     })
 
-    Vue.filter('ktAppend', (value, str) => {
+    Vue.filter('btcAppend', (value, str) => {
       return (isNil(value) ? '' : value) + str
     })
 
-    Vue.filter('ktPrepend', (value, str) => {
+    Vue.filter('btcPrepend', (value, str) => {
       return str + (isNil(value) ? '' : value)
     })
 
-    Vue.filter('ktPositveNumber', (value) => {
+    Vue.filter('btcPositveNumber', (value) => {
       if (value > 0 && isNumber(value)) {
         return '+' + value
       }
       return value
     })
 
-    Vue.filter('ktNegativeNumber', (value) => {
+    Vue.filter('btcNegativeNumber', (value) => {
       if (value > 0) {
         return value
       } else {
@@ -66,7 +66,7 @@ export default {
       }
     })
 
-    Vue.filter('ktNull', (value, str) => {
+    Vue.filter('btcNull', (value, str) => {
       return isNil(value) ? '-' : (str || value)
     })
 
