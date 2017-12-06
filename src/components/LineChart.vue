@@ -18,6 +18,7 @@ require('echarts/lib/component/grid')
 require('echarts/lib/component/axis')
 require('echarts/lib/chart/candlestick')
 require('echarts/lib/component/dataZoom')
+require('echarts/lib/component/markPoint')
 
 const option = {
   title: {

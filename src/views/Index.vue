@@ -104,13 +104,27 @@ export default {
 
         this.asks = asks
         this.bids = bids
-
         this.$refs.lineChart.echart.setOption({
           xAxis: {
             data: data.categoryData
           },
           series: [{
             name: '现货',
+            markPoint: {
+              label: {
+                normal: {
+                  formatter: function(param) {
+                    return param != null ? param.value : ''
+                  }
+                }
+              },
+              data: data.gap_infos,
+              tooltip: {
+                formatter: function(param) {
+                  return param.name + '<br>' + (param.data.coord || '')
+                }
+              }
+            },
             data: data.spot_data
           }, {
             name: '期货',
@@ -122,12 +136,12 @@ export default {
 
     initChart() {
       this.chartOption = {
-        backgroundColor: '#21202D',
+        // backgroundColor: '#21202D',
         legend: {
           data: ['现货', '期货'],
           inactiveColor: '#777',
           textStyle: {
-            color: '#fff'
+            color: '#000'
           },
           top: 80
         },
@@ -300,14 +314,14 @@ table {
   }
   .right-screen {
     overflow-y: scroll;
-    color: white;
-    background: #21212e;
-    table th {
-      background: black;
-    }
-    table tr:hover {
-      background: #313129;
-    }
+    // color: white;
+    // background: #21212e;
+    // table th {
+    //   background: black;
+    // }
+    // table tr:hover {
+    //   background: #313129;
+    // }
     .el-row {
       padding-top: 60px;
     }
