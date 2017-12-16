@@ -1,55 +1,13 @@
 <template lang="pug">
-  section.index-section
-    //- header
-      //- el-select(type="info", size="small", v-model='filter.symbol_type' placeholder='币种选择')
-        el-option(v-for='item in menus' :key='item.id' :label='item.name' :value='item.id')
-    .buttons
-      el-button(type="primary", size="small", @click="toggleViewMode") 视图切换
-    .summary-data(v-html='stateOfMarketHtml')
-    line-chart.kchart(:class="{'left-screen': viewMode === 'h'}", :chart-option="chartOption", ref="lineChart")
-    div.orders(:class="{'right-screen': viewMode === 'h'}")
-      el-row.ask-bid(:gutter='10')
-        el-col(:span='12')
-          table
-            thead
-              tr
-                th 卖出
-                th 卖出价(USDT)
-                th(colspan="2", width="200") 委单量
-            tbody
-              tr(v-for="(item, index) in asks")
-                td.color-red 卖出{{index}}
-                td {{item[0] | btcCurrency('$')}}
-                td.text-right(width="10") {{item[1]}}
-                td
-                  div.bar-line.bid(:style="getStyle(item[1], bidMax)")
-        el-col(:span='12')
-          table
-            thead
-              tr
-                th 买入
-                th 买入价(USDT)
-                th(colspan="2", width="200") 委单量
-            tbody
-              tr(v-for="(item, index) in bids")
-                td.color-green 买入{{index}}
-                td {{item[0] | btcCurrency('$')}}
-                td.text-right(width="10") {{item[1]}}
-                td
-                  div.bar-line.ask(:style="getStyle(item[1], askMax)")
-      el-row
-        minute-chart(ref="minuteChart")
+  section.minute-chart
+    line-chart.kchart(:chart-option="chartOption", ref="lineChart")
 </template>
 
 <script>
 import LineChart from '@/components/LineChart.vue'
-// import Api from '@/api/index.js'
-import { map, max, indexOf } from 'lodash'
-import MinuteChart from '@/views/MinuteChart.vue'
+import { indexOf } from 'lodash'
 
-// const { coinMenus } = Api
 const wsUri = 'ws://59.110.154.130:8222'
-const escapable = /[\x00-\x1f\ud800-\udfff\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufff0-\uffff]/g
 let categoryData = []
 let spotData = []
 let exData = []
@@ -57,19 +15,15 @@ let messagePointer
 
 export default {
   components: {
-    LineChart,
-    MinuteChart
+    LineChart
   },
   methods: {
-    filterUnicode(quoted) {
-      escapable.lastIndex = 0
-      if (!escapable.test(quoted)) return quoted
-
-      return quoted.replace(escapable, a => {
-        return ''
-      })
+    resize() {
+      this.$refs.lineChart.echart.resize()
     },
-
+    updateMinHeight(height) {
+      this.$refs.lineChart.$el.style.minHeight = height + 'px'
+    },
     dataBuffer(data) {
       const oldLength = categoryData.length
       if (oldLength === 0) {
@@ -97,17 +51,17 @@ export default {
       })
 
       this.websocket.onopen = evt => {
-        console.info('Socket 连接成功')
+        console.info('MinuteChart: Socket 连接成功')
         this.websocket.send(JSON.stringify(this.filter))
       }
 
       this.websocket.onclose = evt => {
-        console.log('Socket 连接关闭', evt)
+        console.log('MinuteChart: Socket 连接关闭', evt)
         // this.connectWebSocket()
       }
 
       this.websocket.onerror = evt => {
-        console.error('Socket 连接错误', evt)
+        console.error('MinuteChart: Socket 连接错误', evt)
         this.connectWebSocket()
       }
 
@@ -117,19 +71,11 @@ export default {
         let data = {}
         try {
           data = JSON.parse(evt.data)
-          this.stateOfMarket = JSON.parse(data.state_of_market)
-          console.log('data format success', evt)
+          console.log('MinuteChart: data format success', evt)
         } catch (e) {
-          console.error('data format error', evt)
+          console.error('MinuteChart: data format error', evt)
           return
         }
-        const asks = map(data.depths, 'asks')[0]
-        const bids = map(data.depths, 'bids')[0]
-        this.askMax = max(map(asks, ask => ask[1]))
-        this.bidMax = max(map(asks, bid => bid[1]))
-
-        this.asks = asks.sort((a, b) => a[0] - b[0])
-        this.bids = bids.sort((a, b) => b[0] - a[0])
 
         this.dataBuffer(data)
         this.$refs.lineChart.echart.setOption({
@@ -175,7 +121,7 @@ export default {
 
         messagePointer = setTimeout(() => {
           this.websocket.send(JSON.stringify(this.filter))
-        }, 1000)
+        }, 600)
       }
     },
 
@@ -271,38 +217,10 @@ export default {
           }
         }]
       }
-    },
-
-    updateMinuteMinHeight() {
-      const summaryDom = document.querySelector('.summary-data').getBoundingClientRect()
-      const askBidDom = document.querySelector('.ask-bid').getBoundingClientRect()
-      this.$refs.minuteChart.updateMinHeight(window.innerHeight - summaryDom.height - askBidDom.height)
-    },
-
-    toggleViewMode() {
-      if (this.viewMode === 'v') {
-        this.viewMode = 'h'
-      } else {
-        this.viewMode = 'v'
-      }
-      this.$nextTick(() => {
-        this.$refs.lineChart.echart.resize()
-        this.updateMinuteMinHeight()
-        this.$refs.minuteChart.resize()
-      })
-    },
-
-    getStyle(value, maxValue) {
-      const percent = Math.min(1, value / maxValue)
-      return {
-        width: percent * 100 + '%'
-      }
     }
   },
 
   async mounted() {
-    // const data = await coinMenus.get().then(res => res.data)
-    // this.menus = data.menus
     this.initChart()
     this.connectWebSocket()
   },
@@ -311,27 +229,9 @@ export default {
     this.websocket.close()
   },
 
-  computed: {
-    stateOfMarketHtml() {
-      return map(this.stateOfMarket, (val, key) => {
-        return `<span>${key}</span>:<span class="em-number">${val}</span>`
-      }).join('')
-    }
-  },
-
   data() {
     return {
-      stateOfMarket: {},
-      viewMode: 'v',
-      filter: {
-        symbol_type: ''
-      },
-      askMax: 0,
-      bidMax: 0,
-      asks: [],
-      bids: [],
-      chartOption: {},
-      menus: []
+      chartOption: {}
     }
   }
 }
@@ -355,7 +255,7 @@ table {
   }
   th,
   td {
-    padding: 1px 8px;
+    padding: 3px 8px;
     border-top: 1px solid #d5d5d5;
   }
   th {
@@ -365,58 +265,9 @@ table {
 </style>
 
 <style lang="stylus">
-.index-section {
-  .em-number {
-    padding: 0 8px;
-    color: red;
-  }
-  .text-right {
-    text-align: right;
-  }
-  .color-green {
-    color: #689700;
-  }
-  .color-red {
-    color: red;
-  }
+.minute-chart {
   .kchart {
-    min-height: 80vh;
-  }
-  .el-row {
-    padding: 10;
-  }
-  .right-screen,
-  .left-screen {
-    float: left;
-    width: 50%;
-    min-height: 80vh;
-  }
-  .right-screen {
-    overflow-y: scroll; // color: white;
-    .el-row {
-      padding: 0;
-    }
-  }
-  .bar-line {
-    height: 20px;
-    &.ask {
-      background-color: #689700;
-    }
-    &.bid {
-      background-color: red;
-    }
-  }
-  .buttons {
-    float: right;
-  }
-  header {
-    z-index: 999; // position: fixed;
-    // top: 0;
-    // left: 0;
-    // right: 0;
-    overflow: hidden;
-    background: black;
-    padding: 10px 15px;
+    min-height: 45vh;
   }
 }
 </style>
