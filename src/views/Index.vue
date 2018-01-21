@@ -3,12 +3,14 @@
     //- header
       //- el-select(type="info", size="small", v-model='filter.symbol_type' placeholder='币种选择')
         el-option(v-for='item in menus' :key='item.id' :label='item.name' :value='item.id')
-    .buttons
-      el-button(type="primary", size="small", @click="toggleViewMode") 视图切换
+    .buttons.mt10
+      el-select.mr5(type="info", size="small", v-model='viewMode', placeholder='币种选择', @change="toggleViewMode")
+        el-option(v-for='item in viewTypeList', :key='item.value', :label='item.name', :value='item.value')
+      el-button(type="primary", size="small", @click="restartServer") 服务重启
     .summary-data(v-html='stateOfMarketHtml')
-    line-chart.kchart(:class="{'left-screen': viewMode === 'h'}", :chart-option="chartOption", ref="lineChart")
-    div.orders(:class="{'right-screen': viewMode === 'h'}")
-      el-row.ask-bid(:gutter='10')
+    line-chart.kchart(v-show="viewMode === 'ms' || viewMode === 'whole'", :class="{'left-screen': viewMode === 'whole'}", :chart-option="chartOption", ref="msChart")
+    div.orders(:class="{'right-screen': viewMode === 'whole'}")
+      el-row.ask-bid(:gutter='10', v-show="viewMode === 'whole'")
         el-col(:span='12')
           table
             thead
@@ -37,21 +39,22 @@
                 td.text-right(width="10") {{item[1]}}
                 td
                   div.bar-line.ask(:style="getStyle(item[1], askMax)")
-      el-row
+      el-row(v-show="viewMode === 'min' || viewMode === 'whole'")
         minute-chart(ref="minuteChart")
 </template>
 
 <script>
 import LineChart from '@/components/LineChart.vue'
-// import Api from '@/api/index.js'
+import Api from '@/api/index.js'
 import { map, max, indexOf } from 'lodash'
 import MinuteChart from '@/views/MinuteChart.vue'
 
-// const { coinMenus } = Api
+const { restartSystem } = Api
 const wsUri = 'ws://59.110.154.130:8222'
 const escapable = /[\x00-\x1f\ud800-\udfff\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufff0-\uffff]/g
 let categoryData = []
 let spotData = []
+let marginData = []
 let exData = []
 let messagePointer
 
@@ -75,12 +78,14 @@ export default {
       if (oldLength === 0) {
         categoryData = data.categoryData
         spotData = data.spot_data
+        marginData = data.margin_data
         exData = data.ex_data
       } else {
         const lastOld = categoryData[oldLength - 1]
         const diffDot = indexOf(data.categoryData, lastOld)
         categoryData = categoryData.concat(data.categoryData.slice(diffDot + 1)).slice(-800)
         spotData = spotData.concat(data.spot_data.slice(diffDot + 1)).slice(-800)
+        marginData = marginData.concat(data.margin_data.slice(diffDot + 1)).slice(-800)
         exData = exData.concat(data.ex_data.slice(diffDot + 1)).slice(-800)
       }
     },
@@ -118,6 +123,8 @@ export default {
         try {
           data = JSON.parse(evt.data)
           this.stateOfMarket = JSON.parse(data.state_of_market)
+          this.stateOfMarket['价差'] = data.gap_infos[0].value
+          this.stateOfMarket['价差比'] = data.gap_infos[1].value
           console.log('data format success', evt)
         } catch (e) {
           console.error('data format error', evt)
@@ -132,7 +139,8 @@ export default {
         this.bids = bids.sort((a, b) => b[0] - a[0])
 
         this.dataBuffer(data)
-        this.$refs.lineChart.echart.setOption({
+
+        this.$refs.msChart.echart.setOption({
           tooltip: {
             show: true,
             confine: true,
@@ -170,6 +178,9 @@ export default {
           }, {
             name: '期货',
             data: exData
+          }, {
+            name: '价差',
+            data: marginData
           }]
         })
 
@@ -183,7 +194,7 @@ export default {
       this.chartOption = {
         // backgroundColor: '#21202D',
         legend: {
-          data: ['现货', '期货'],
+          data: ['现货', '期货', '价差'],
           inactiveColor: '#777',
           textStyle: {
             color: '#000'
@@ -269,29 +280,69 @@ export default {
               width: 1
             }
           }
+        }, {
+          name: '价差',
+          type: 'line',
+          data: [],
+          smooth: true,
+          showSymbol: false,
+          lineStyle: {
+            normal: {
+              width: 1
+            }
+          }
         }]
       }
     },
 
-    updateMinuteMinHeight() {
-      const summaryDom = document.querySelector('.summary-data').getBoundingClientRect()
-      const askBidDom = document.querySelector('.ask-bid').getBoundingClientRect()
-      this.$refs.minuteChart.updateMinHeight(window.innerHeight - summaryDom.height - askBidDom.height)
-    },
+    // updateMinuteMinHeight() {
+    //   const summaryDom = document.querySelector('.summary-data').getBoundingClientRect()
+    //   const askBidDom = document.querySelector('.ask-bid').getBoundingClientRect()
+    //   this.$refs.msChart.$el.style.minHeight = (window.innerHeight - summaryDom.height - 15) + 'px'
+    //   this.$refs.minuteChart.updateMinHeight(window.innerHeight - summaryDom.height - askBidDom.height - 15)
+    // },
 
+    // 切换视图
     toggleViewMode() {
-      if (this.viewMode === 'v') {
-        this.viewMode = 'h'
-      } else {
-        this.viewMode = 'v'
-      }
       this.$nextTick(() => {
-        this.$refs.lineChart.echart.resize()
-        this.updateMinuteMinHeight()
-        this.$refs.minuteChart.resize()
+        const summaryDom = document.querySelector('.summary-data').getBoundingClientRect()
+        const askBidDom = document.querySelector('.ask-bid').getBoundingClientRect()
+        if (this.viewMode === 'whole') {
+          this.$refs.msChart.$el.style.minHeight = (window.innerHeight - summaryDom.height - 15) + 'px'
+          this.$refs.minuteChart.updateMinHeight(window.innerHeight - summaryDom.height - askBidDom.height - 15)
+          this.$refs.msChart.echart.resize()
+          this.$refs.minuteChart.resize()
+        } else if (this.viewMode === 'min') {
+          this.$refs.minuteChart.updateMinHeight(window.innerHeight - summaryDom.height - 15)
+          this.$refs.minuteChart.resize()
+        } else if (this.viewMode === 'ms') {
+          this.$refs.msChart.$el.style.minHeight = (window.innerHeight - summaryDom.height - 15) + 'px'
+          this.$refs.msChart.echart.resize()
+        }
       })
     },
 
+    // 重启服务
+    async restartServer() {
+      this.$notify({
+        title: '提示',
+        message: '数据停止更新，20秒后重启成功！'
+        // duration: 0
+      })
+
+      const res = await restartSystem.get()
+      this.websocket.close()
+      this.$refs.minuteChart.stop()
+
+      setTimeout(() => {
+        this.$message({ message: '重启系统成功', type: 'success' })
+        console.log(res, '重启系统成功')
+        this.connectWebSocket()
+        this.$refs.minuteChart.connectWebSocket()
+      }, 20000)
+    },
+
+    // 计算买卖量的柱形图展示
     getStyle(value, maxValue) {
       const percent = Math.min(1, value / maxValue)
       return {
@@ -321,8 +372,19 @@ export default {
 
   data() {
     return {
+      systemRestarting: false,
       stateOfMarket: {},
-      viewMode: 'v',
+      viewMode: 'whole',
+      viewTypeList: [{
+        name: '整体视图',
+        value: 'whole'
+      }, {
+        name: '分钟视图',
+        value: 'min'
+      }, {
+        name: '毫秒视图',
+        value: 'ms'
+      }],
       filter: {
         symbol_type: ''
       },
@@ -344,6 +406,8 @@ export default {
   color: black;
   line-height: 30px;
   font-size: 14px;
+  overflow: hidden;
+  padding-right: 20px;
 }
 
 table {

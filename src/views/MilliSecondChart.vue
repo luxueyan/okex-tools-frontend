@@ -10,7 +10,6 @@ import { indexOf } from 'lodash'
 const wsUri = 'ws://59.110.154.130:8223'
 let categoryData = []
 let spotData = []
-let marginData = []
 let exData = []
 let messagePointer
 
@@ -22,29 +21,21 @@ export default {
     resize() {
       this.$refs.lineChart.echart.resize()
     },
-
-    stop() {
-      this.websocket.close()
-    },
-
     updateMinHeight(height) {
       this.$refs.lineChart.$el.style.minHeight = height + 'px'
     },
-
     dataBuffer(data) {
       const oldLength = categoryData.length
       if (oldLength === 0) {
         categoryData = data.categoryData
         spotData = data.spot_data
-        marginData = data.margin_data
         exData = data.ex_data
       } else {
         const lastOld = categoryData[oldLength - 1]
         const diffDot = indexOf(data.categoryData, lastOld)
-        categoryData = categoryData.concat(data.categoryData.slice(diffDot + 1)).slice(-4000)
-        spotData = spotData.concat(data.spot_data.slice(diffDot + 1)).slice(-4000)
-        marginData = marginData.concat(data.margin_data.slice(diffDot + 1)).slice(-4000)
-        exData = exData.concat(data.ex_data.slice(diffDot + 1)).slice(-4000)
+        categoryData = categoryData.concat(data.categoryData.slice(diffDot + 1)).slice(-800)
+        spotData = spotData.concat(data.spot_data.slice(diffDot + 1)).slice(-800)
+        exData = exData.concat(data.ex_data.slice(diffDot + 1)).slice(-800)
       }
     },
 
@@ -125,9 +116,6 @@ export default {
           }, {
             name: '期货',
             data: exData
-          }, {
-            name: '价差',
-            data: marginData
           }]
         })
 
@@ -141,7 +129,7 @@ export default {
       this.chartOption = {
         // backgroundColor: '#21202D',
         legend: {
-          data: ['现货', '期货', '价差'],
+          data: ['现货', '期货'],
           inactiveColor: '#777',
           textStyle: {
             color: '#000'
@@ -218,17 +206,6 @@ export default {
           }
         }, {
           name: '期货',
-          type: 'line',
-          data: [],
-          smooth: true,
-          showSymbol: false,
-          lineStyle: {
-            normal: {
-              width: 1
-            }
-          }
-        }, {
-          name: '价差',
           type: 'line',
           data: [],
           smooth: true,

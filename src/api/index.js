@@ -69,13 +69,17 @@ export const APIS = [{
   name: 'coinMenus',
   url: '/coin_menus',
   methods: ['get']
+}, {
+  name: 'restartSystem',
+  url: '/restart_system',
+  methods: ['get', 'post']
 }]
 
 const apiCollection = {}
 
 each(APIS, (api) => {
   each(api.methods, m => {
-    apiCollection[api.name] = {}
+    apiCollection[api.name] = apiCollection[api.name] || {}
     if (m === 'get') {
       apiCollection[api.name].get = (data, config) => http.get(api.url, { params: data, ...config })
     } else {
